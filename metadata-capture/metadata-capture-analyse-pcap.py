@@ -1,8 +1,8 @@
-#!/home/venv/bin/python3
+#!/home/zenlab/Documents/venv/bin/python3
 
-# Date - 14 May 2023
-# Author - Joydeep Pal
-# Description - Analyse pcap-json-csv file which has raw packet data to find metadata
+# Date:	14-May-2023
+# Author:	Joydeep Pal
+# Description:	Analyse pcap-json-csv file which has raw packet data to find metadata
 # at specific positions and analyse time difference of our two TSN switches.
 
 import datetime
