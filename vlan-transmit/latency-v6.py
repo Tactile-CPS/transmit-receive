@@ -26,43 +26,60 @@ dfrx.rename(columns={"vlan.id": "Flows", 'frame.time_epoch': 'Epoch Time (Rx)'},
 dftx['Flows'].replace({2: 'ST', 3: 'BE', 4: 'ST2'}, inplace=True)
 dfrx['Flows'].replace({2: 'ST', 3: 'BE', 4: 'ST2'}, inplace=True)
 # dftx.rename(columns={"udp.dstport": "Flows"}, inplace=True)
-# dfrx.rename(columns={"udp.dstport": "Flows"}, inplace=True)
 # Time_Data['Flows'] = Time_Data['Flows'].replace([3001], 'ST')
-# Time_Data['Flows'] = Time_Data['Flows'].replace([3002], 'BE')
-
-TestMetadata = pd.DataFrame()
-
-# Bandwidth = []
-if len(sys.argv) > 1:
-    Bandwidth = [sys.argv[1], sys.argv[2]]
-    # Bandwidth[1] = sys.argv[2]
-    Duration = sys.argv[3]
-else:
-    Bandwidth = ['Trial', 'Trial']
-    # Bandwidth[0] = 'Trial'
-    # Bandwidth[1] = 'Trial'
-    Duration = 'Trial'
-
-TestMetadata['Bandwidth'] = {'ST': Bandwidth[0], 'BE': Bandwidth[1], 'ST2': Bandwidth[0]}
-TestMetadata['Timestamp'] = FileDate
-TestMetadata['Duration'] = Duration
-
-FigureName = '/home/zenlab/Documents/tsn-project/Results/temp-figures/' + 'S_' + Bandwidth[0] + '_B_' + Bandwidth[1] + \
-             '_Dur_' + Duration + 's_' + FileDate + '.png'
-MergedDatasetFilename = '/home/zenlab/Documents/tsn-project/data-pcap-csv/temp-csv/' + 'S_' + Bandwidth[0] + '_B_' + \
-                        Bandwidth[1] + '_Dur_' + Duration + 's_' + FileDate + '.csv'
-
 TxCountTotal = dftx['Flows'].count()
 RxCountTotal = dfrx['Flows'].count()
-TestMetadata['TxCountOfEachFlow'] = dftx['Flows'].fillna('Others').value_counts()
-# TxCountOfEachFlow = dftx['Flows'].value_counts(dropna=False)
-RxCountOfEachFlow = dfrx['Flows'].fillna('Others').value_counts()
-TestMetadata['RxCountOfEachFlow'] = RxCountOfEachFlow
-TestMetadata['TxCountTotal'] = TxCountTotal
-TestMetadata['RxCountTotal'] = RxCountTotal
-TestMetadata['Bandwidth'] = {'ST': Bandwidth[0], 'BE': Bandwidth[1]}
-TestMetadata['Timestamp'] = FileDate
-TestMetadata['Duration'] = Duration
+
+''' To remove few datapoints'''
+# Time_Data = Time_Data.iloc[40:]
+
+
+def summary_to_csv():
+    TestMetadata = pd.DataFrame()
+
+    # bandwidth = []
+    if len(sys.argv) > 1:
+        bandwidth = [sys.argv[1], sys.argv[2]]
+        duration = sys.argv[3]
+    else:
+        bandwidth = ['Trial', 'Trial']
+        duration = 'Trial'
+
+    TestMetadata['bandwidth'] = {'ST': bandwidth[0], 'BE': bandwidth[1], 'ST2': bandwidth[0]}
+    TestMetadata['Timestamp'] = FileDate
+    TestMetadata['Duration'] = duration
+
+    FigureName = ('/home/zenlab/Documents/tsn-project/Results/temp-figures/' +
+                  'S_' + bandwidth[0] + '_B_' + bandwidth[1] +
+                  '_Dur_' + duration + 's_' +
+                  FileDate + '.png')
+    MergedDatasetFilename = ('/home/zenlab/Documents/tsn-project/data-pcap-csv/csv-temp/' +
+                             'S_' + bandwidth[0] + '_B_' + bandwidth[1] +
+                             '_Dur_' + duration + 's_' +
+                             FileDate + '.csv')
+    # plt.savefig(FigureName)
+
+    TestMetadata['TxCountOfEachFlow'] = dftx['Flows'].fillna('Others').value_counts()
+    # TxCountOfEachFlow = dftx['Flows'].value_counts(dropna=False)
+    RxCountOfEachFlow = dfrx['Flows'].fillna('Others').value_counts()
+    TestMetadata['RxCountOfEachFlow'] = RxCountOfEachFlow
+    TestMetadata['TxCountTotal'] = TxCountTotal
+    TestMetadata['RxCountTotal'] = RxCountTotal
+    TestMetadata['bandwidth'] = {'ST': bandwidth[0], 'BE': bandwidth[1]}
+    TestMetadata['Timestamp'] = FileDate
+    TestMetadata['Duration'] = duration
+
+    # Count of relevant data only
+    TestMetadata['TxPacketCount'] = Time_Data['Flows'].value_counts()
+    TestMetadata['RxPacketCount'] = Time_Data[~Time_Data["Epoch Time (Rx)"].isnull()]['Flows'].value_counts()
+    TestMetadata['PacketLoss'] = TestMetadata['TxPacketCount'] - TestMetadata['RxPacketCount']
+    TestMetadata['PacketLoss%'] = (TestMetadata['PacketLoss'] * 100 / TestMetadata['TxPacketCount']).round(2)
+    TestMetadata['LatencyMin'] = (Time_Data.groupby(['Flows']).min()['Latency (ms)']).round(2)
+    TestMetadata['LatencyMax'] = (Time_Data.groupby(['Flows']).max()['Latency (ms)']).round(2)
+
+    ''' Write data analysis numbers for this test to csv '''
+    TestMetadata.to_csv('/home/zenlab/Documents/tsn-project/Results/Experimental.csv', mode='a')
+
 
 # Clean data to keep only our data and remove arp, dns and other irrelevant data
 dftx = dftx[~dftx['Flows'].isnull()]
@@ -73,18 +90,13 @@ dfrx = dfrx[~dfrx['Flows'].isnull()]
 Time_Data = pd.merge(dftx, dfrx[['ip.src', 'ip.id', 'Flows', 'Epoch Time (Rx)']],
                      on=['ip.src', 'ip.id', 'Flows'],
                      how='left')
-Time_Data.to_csv(MergedDatasetFilename, mode='w')
+# Time_Data.to_csv(MergedDatasetFilename, mode='w')
 
 # This dataframe has all Tx packets and hence can be used to number the packets
 Time_Data["Packet Number"] = Time_Data.index
 Time_Data['Latency (ms)'] = (Time_Data["Epoch Time (Rx)"] - Time_Data["Epoch Time (Tx)"]) * 1000
-# Time_Data["Packet Number"] = Time_Data["ip.id"].apply(lambda u: int(u, 0))
-# Time_Data['Latency (ms)'] =
-# Time_Data.apply(lambda row: (row["Epoch Time (Rx)"] - row["Epoch Time (Tx)"])*1000, axis=1)
 # CumulativeSumOfLostPackets = Time_Data['Missed'].cumsum()
 # CumulativeSumOfReceivedPackets = (~Time_Data['Missed']).cumsum()
-# sns.scatterplot(data=Time_Data, x='Packet Number', y=(~Time_Data['Missed']).cumsum())
-# sns.scatterplot(data=Time_Data, x='frame.time_epoch_x', y=(~Time_Data['Missed']).cumsum(), hue='Flows')
 # Time_Data[Time_Data['Flows']=='BE']['Missed'].cumsum()
 
 # Time_Data['Epoch Time (Tx)'] = pd.to_datetime(Time_Data['Epoch Time (Tx)'], unit='s')
@@ -98,18 +110,8 @@ PacketNumberMax = Time_Data['Packet Number'].max()
 TxTimeMin = Time_Data['Epoch Time (Tx)'].min()
 TxTimeMax = Time_Data['Epoch Time (Tx)'].max()
 
-''' To remove first few datapoints'''
-# Time_Data = Time_Data.iloc[40:]
-
-# Count of relevant data only
-TestMetadata['TxPacketCount'] = Time_Data['Flows'].value_counts()
-TestMetadata['RxPacketCount'] = Time_Data[~Time_Data["Epoch Time (Rx)"].isnull()]['Flows'].value_counts()
-TestMetadata['PacketLoss'] = TestMetadata['TxPacketCount'] - TestMetadata['RxPacketCount']
-TestMetadata['PacketLoss%'] = (TestMetadata['PacketLoss'] * 100 / TestMetadata['TxPacketCount']).round(2)
-
 # Show min and max latency using graphs
-TestMetadata['LatencyMin'] = (Time_Data.groupby(['Flows']).min()['Latency (ms)']).round(2)
-TestMetadata['LatencyMax'] = (Time_Data.groupby(['Flows']).max()['Latency (ms)']).round(2)
+
 # df['Count'] = df.groupby(['Medicine'])['Dosage'].transform('count')
 # Time_Data.groupby(['Flows'])['Latency (ms)'].describe()
 # gfh = Time_Data.groupby(['Time Axis'])
@@ -131,24 +133,27 @@ LostPacketsList = Time_Data[Time_Data['Missed']]
 # LostPacketsList = Time_Data[Time_Data['Missed']][[
 #     "frame.time_epoch_x", "Packet Number", "Flows", "Time Axis"]]
 
-''' Print all information '''
-# print('Tx Count = ' + str(TxCountTotal))
-# print('TxCountOfEachFlow', TxCountOfEachFlow)
-# dftx['Flows'].value_counts()[3.0]
 
-# Printing errrors thgen use below code
-# if 'ST' in RxPacketCount.index:
-#     A = RxPacketCount['ST'] * 100 / TxPacketCount['ST']
-#     print(f"VLAN ST Rx % = {A:.2f}")
-# else:
-#     print(f'VLAN ST Rx % = 0')
-# if 'BE' in RxPacketCount.index:
-#     B = RxPacketCount['BE'] * 100 / TxPacketCount['BE']
-#     print(f"VLAN BE Rx % = {B:.2f}")
-# else:
-#     print(f'VLAN BE Rx % = 0')
-# rte = dftx.groupby(['ip.id', 'udp.dstport']).size().reset_index().rename(columns={0: 'count'})
+def print_all_info():
+    print('Tx Count = ' + str(TxCountTotal))
+    # print('TxCountOfEachFlow', TxCountOfEachFlow)
+    # dftx['Flows'].value_counts()[3.0]
 
+    # Printing errrors thgen use below code
+    # if 'ST' in RxPacketCount.index:
+    #     A = RxPacketCount['ST'] * 100 / TxPacketCount['ST']
+    #     print(f"VLAN ST Rx % = {A:.2f}")
+    # else:
+    #     print(f'VLAN ST Rx % = 0')
+    # if 'BE' in RxPacketCount.index:
+    #     B = RxPacketCount['BE'] * 100 / TxPacketCount['BE']
+    #     print(f"VLAN BE Rx % = {B:.2f}")
+    # else:
+    #     print(f'VLAN BE Rx % = 0')
+    # rte = dftx.groupby(['ip.id', 'udp.dstport']).size().reset_index().rename(columns={0: 'count'})
+
+
+print(Time_Data['Latency (ms)'].describe())
 
 if Plotting == "Subplots":
 
@@ -216,10 +221,11 @@ if Plotting == "Subplots":
     axes[2, 1].set_xlim(PacketNumberMin, PacketNumberMax)
     # CDF of lost packets
     # sns.ecdfplot(data=Time_Data, x='Missed', hue='Flows')
+    # sns.scatterplot(data=Time_Data, x='Packet Number', y=(~Time_Data['Missed']).cumsum())
+    # sns.scatterplot(data=Time_Data, x='frame.time_epoch_x', y=(~Time_Data['Missed']).cumsum(), hue='Flows')
     plt.tight_layout()
-    plt.savefig(FigureName)
 
-else:
+elif Plotting == "Separate":
 
     ''' Latency - Separate - Aggregate plot '''
     # Plot catplot(boxplot) without outliers for Latency experienced by the ST and BE flows
@@ -266,9 +272,6 @@ else:
 
 
 plt.show()
-
-''' Write data analysis numbers for this test to csv '''
-TestMetadata.to_csv('/home/zenlab/Documents/tsn-project/Results/Experimental.csv', mode='a')
 
 ''' To optimize the code '''
 # If you want to optimize the python code, you can do the below line and other things

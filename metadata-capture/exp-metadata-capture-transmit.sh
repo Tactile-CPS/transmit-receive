@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Author: Joydeep Pal
-# Date: 14 May 2023
-# Description: This script does the following tasks:
+# Author: 		Joydeep Pal
+# Date: 		14-May-2023
+# Description: 	This script does the following tasks:
 # 1. Starts packet capture at source 
 # 2. Transmits and receives those custom packets (with space for metadata) on the same interface of the source PC
 # 3. Then converts pcap to raw hexdump in the form of json using tshark, and then converts json to csv (one line for each packet)
 # 4. Received packets have a diferent VLAN ID (identified by vlan.id=7, this modification is done by the switch's c_packetprocessing function), compared to transmitted packets and thus can be filtered out
 
-source ~/Documents/tsn-project/configuration-variables
+source ~/Documents/tsn-project/configuration-variables.sh
 
 # Script parameters:
 PacketCount=30

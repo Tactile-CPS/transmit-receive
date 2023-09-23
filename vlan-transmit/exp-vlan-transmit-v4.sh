@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Author: Joydeep Pal
-# Date: Nov 2022
-# Date Modified: 10 Jan, 18 May 2023
+# Author: 		Joydeep Pal
+# Date: 		Nov-2022
+# Date Modified: 	10-Jan, 18-May-2023
 # Description: Broadly, it transmits ST and BE flows to the destination end-host.
 # Flows are defined using VLAN IDs.
 # Flows travel via one or multiple NFP's running a firmware
@@ -21,7 +21,7 @@ source ~/Documents/tsn-project/configuration-variables.sh
 
 # Script parameters:
 
-BandwidthSTFlow=10M # 10M # 6.6M # 3.3M
+BandwidthSTFlow=10M  # 6.6M # 3.3M
 BandwidthBEFlow=10M
 Duration=5
 DurationCapture=$(($Duration+5))
@@ -74,3 +74,4 @@ echo 'Step 6: Process using python script'
 
 echo 'Done !!'
 echo ' '
+
