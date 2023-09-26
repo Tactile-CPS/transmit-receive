@@ -1,9 +1,9 @@
 #!/home/zenlab/Documents/venv/bin/python3
 
-# Author: 		Joydeep Pal
-# Date: 		Nov-2022
-# Date Modified: 	May-2023
-# Description: 	Plots latency for ST snd BE flows
+# Author        : Joydeep Pal
+# Date          : Nov-2022
+# Date Modified : May-2023
+# Description   : Plots latency for ST snd BE flows
 
 import sys
 import datetime

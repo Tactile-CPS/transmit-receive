@@ -1,8 +1,8 @@
 #!/home/zenlab/venv/bin/python3
 
-# Date: 3rd May 2023
-# Author: Joydeep Pal
-# Description: This script creates custom packets with space for metadata.
+# Date		: 03-May-2023
+# Author	: Joydeep Pal
+# Description	: This script creates custom packets with space for metadata.
 # Creates 65536 packets of UDPsrcport of 6000, 6001 etc. Thus, each packet can be identified using ip.id, udp.srcport. 
 # udp.dstport, vlan.id, priority are mapped.
 
@@ -22,14 +22,18 @@ class MetadataHeader(Packet):
         BitField("timestamp2", 0, 64),
         BitField("timestamp3", 0, 64),
         BitField("timestamp4", 0, 64),
-        BitField("timestamp5", 0, 64)
+        BitField("timestamp5", 0, 64),
+        BitField("timestamp6", 0, 64),
+        BitField("timestamp7", 0, 64),
+        BitField("timestamp8", 0, 64),
+        BitField("timestamp9", 0, 64)
     ]
     def mysummary(self):
         return self.sprintf("metadata")
 
 iface = 'random'  # 'lo', 'enp1s0np0', 'enp1s0f0'
-srcmac = '11:11:11:11:11:11'  # get_if_hwaddr(iface)
-dstmac = '11:11:11:11:11:12'  # '00:1b:21:c2:54:42'
+srcmac = '00:1b:21:c2:54:11'  # get_if_hwaddr(iface)
+dstmac = '00:1b:21:c2:54:12'  # '00:1b:21:c2:54:42'
 UDPsrcport = 6000
 UDPsrcportrange = UDPsrcport + 1
 IPsrc = '100.1.10.10'

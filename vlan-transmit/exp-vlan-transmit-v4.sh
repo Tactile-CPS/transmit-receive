@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Author: 		Joydeep Pal
-# Date: 		Nov-2022
-# Date Modified: 	10-Jan, 18-May-2023
-# Description: Broadly, it transmits ST and BE flows to the destination end-host.
+# Author		: Joydeep Pal
+# Date			: Nov-2022
+# Date Modified	: 10-Jan, 18-May-2023
+# Description		: Broadly, it transmits ST and BE flows to the destination end-host.
 # Flows are defined using VLAN IDs.
 # Flows travel via one or multiple NFP's running a firmware
 # either NIC firmware (nic_firmware) or our custom Micro-C program firmware.
@@ -45,8 +45,8 @@ sleep 1
 echo ' '
 echo 'Step 2: Start packet tx (Mixed VLAN Traffic)'
 echo 'Next two are for custom MicroC programs'
-tcpreplay -i $TXPC_PORT -M $BandwidthSTFlow --duration=$Duration '~/Documents/vlan-pcap-files/NewFlows/Traffic_Flow_vlan(2)_packetsize(100B)_Priority(0)_NoPrio_test8.pcap' &
-tcpreplay -i $TXPC_PORT -M $BandwidthBEFlow --duration=$Duration '~/Documents/vlan-pcap-files/NewFlows/Traffic_Flow_vlan(3)_packetsize(100B)_Priority(0)_NoPrio_test8.pcap'
+tcpreplay -i $TXPC_PORT -M $BandwidthSTFlow --duration=$Duration "$HOME/Documents/vlan-pcap-files/NewFlows/Traffic_Flow_vlan(2)_packetsize(100B)_Priority(0)_NoPrio_test8.pcap" &
+tcpreplay -i $TXPC_PORT -M $BandwidthBEFlow --duration=$Duration "$HOME/Documents/vlan-pcap-files/NewFlows/Traffic_Flow_vlan(3)_packetsize(100B)_Priority(0)_NoPrio_test8.pcap"
 #tcpreplay -i $LocalCaptureEthernetInterface -M $BandwidthBEFlow --duration=$Duration '../VLAN_PCAP_Files/NewFlows/Traffic_Flow_vlan(4)_packetsize(1000B)_Priority(0)_NoPrio_test8.pcap' &
 #tcpreplay -i $LocalCaptureEthernetInterface -M $BandwidthSTFlow --duration=$Duration '../VLAN_PCAP_Files/NewFlows/VLAN_2_packets_Size_1000B_NoPrio_test4.pcap' &
 #tcpreplay -i $LocalCaptureEthernetInterface -M $BandwidthBEFlow --duration=$Duration '../Networking_Experiments/VLAN_PCAP_Files/ArchiveFlows/VLAN_3_packets_Size_1000B_NoPrio_test4.pcap' &
@@ -58,13 +58,14 @@ echo 'Next two are for running on nic_firmware'
 echo ' '
 echo 'Step 3: Check if packet capture successful by checking if file exists in remote node'
 sleep 3
-ssh $RXPC_IP "ls -al /tmp/ | grep rx" # or "ls -al $RXfile"
+ssh $RXPC_IP "ls -al /tmp/ | grep rx"  # or "ls -al $RXfile"
 
 echo 'Step 4: Transfer Tx capture from remote to local system for analysis'
 scp -C $RXPC_IP:$RXfile $RXfile
 
 echo 'Step 5: Convert pcap to csv for automated analysis with python'
-args="-T fields -E header=y -E separator=, -e ip.src -e ip.dst -e ip.id -e vlan.id -e vlan.priority \
+args="-T fields -E header=y -E separator=, \
+-e ip.src -e ip.dst -e ip.id -e vlan.id -e vlan.priority \
 -e udp.srcport -e udp.dstport -e frame.time_epoch -e frame.len"
 eval tshark -r $RXfile $args > /tmp/RXv1.csv &
 eval tshark -r $TXfile $args > /tmp/TXv1.csv

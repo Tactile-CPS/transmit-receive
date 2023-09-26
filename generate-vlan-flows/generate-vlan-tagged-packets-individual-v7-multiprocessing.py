@@ -1,14 +1,11 @@
 #!/home/joy/Documents/venv/bin/python3
 
-# Date: Oct 2022
-# Author: Deepak Choudhary and Joydeep Pal
-# Description: This script creates custom packets with VLAN tags.
+# Date		: Oct-2022
+# Author	: Deepak Choudhary and Joydeep Pal
+# Description	: This script creates custom packets with VLAN tags.
 # You can fill in VLAN IDs, PCP (Priority Code Point),
 # and maybe add sequence numbers to a particular header field.
-# Modified Date: Dec 2022 - Joydeep Pal
-# Modified Date: Feb 2023 - Joydeep Pal
-# Modified Date: Apr 2023 - Joydeep Pal
-# Modified Date: Sep 2023 - Joydeep Pal
+# Modified Date: Dec-2022, Feb,Apr,Sep-2023 - Joydeep Pal
 
 import multiprocessing as mp
 
