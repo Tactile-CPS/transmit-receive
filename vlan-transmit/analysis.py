@@ -1,4 +1,4 @@
-#!/home/zenlab/Documents/venv/bin/python3
+#!/opt/venv/bin/python3
 
 # Author        : Joydeep Pal
 # Date          : Nov-2022
