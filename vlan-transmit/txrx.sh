@@ -1,9 +1,9 @@
 #!/bin/bash
 
+# Description		: Broadly, it transmits ST and BE flows to the destination end-host.
 # Author		: Joydeep Pal
 # Date			: Nov-2022
 # Date Modified	: 10-Jan, 18-May-2023
-# Description		: Broadly, it transmits ST and BE flows to the destination end-host.
 # Flows are defined using VLAN IDs.
 # Flows travel via one or multiple NFP's running a firmware
 # either NIC firmware (nic_firmware) or our custom Micro-C program firmware.
@@ -23,7 +23,7 @@ source ~/Documents/tsn-project/configuration-variables.sh
 
 BandwidthSTFlow=10M  # 6.6M # 3.3M
 BandwidthBEFlow=10M
-Duration=5
+Duration=2
 DurationCapture=$(($Duration+5))
 
 #LocalCaptureInterfaceIP=20.20.20.20
@@ -71,8 +71,7 @@ eval tshark -r $RXfile $args > /tmp/RXv1.csv &
 eval tshark -r $TXfile $args > /tmp/TXv1.csv
 
 echo 'Step 6: Process using python script'
-./latency-v6.py $BandwidthSTFlow $BandwidthBEFlow $Duration
+./analysis.py $BandwidthSTFlow $BandwidthBEFlow $Duration
 
 echo 'Done !!'
 echo ' '
-

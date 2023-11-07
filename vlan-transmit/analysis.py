@@ -11,10 +11,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-Plotting = "Subplots" # "Subplots"  # "Separate"
+Plotting = "Separate" # "Subplots"  # "Separate"
 flierprops = dict(marker='o', markersize=1)  # Define outlier properties of boxplots
-sns.set_theme(style='white', context='notebook',
-              font_scale=0.75, rc={'figure.figsize': (16, 9)})
+sns.set_theme(style='whitegrid', context='notebook',
+              font_scale=2, rc={'figure.figsize': (16, 9)})
 
 BinSize = 20
 FileDate = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -227,16 +227,32 @@ if Plotting == "Subplots":
 
 elif Plotting == "Separate":
 
+    # Separate the flow dataframes for now, until you find a better
+    # way of representation without doing this separation
+    FlowST = Time_Data[Time_Data['Flows'] == 'ST']
+    FlowBE = Time_Data[Time_Data['Flows'] == 'BE']
+
     ''' Latency - Separate - Aggregate plot '''
     # Plot catplot(boxplot) without outliers for Latency experienced by the ST and BE flows
     # LatencyCol = sns.FacetGrid(Time_Data, row='Flows', sharex=True, sharey=False)
     # LatencyCol.map(sns.boxplot, 'Time Axis', 'Latency (ms)', showfliers=False)
 
     ''' Latency - Separate - Packet plot - CDF(Latency) '''
+    fig, axes = plt.subplots(1, 2)  # , sharex='col', tight_layout=True)
+    ''' Latency - Separate - Packet plot - CDF(Latency) '''
+    sns.ecdfplot(ax=axes[0], data=FlowST, x="Latency (ms)", lw=7,
+    		stat='proportion', log_scale=(False, False))  #.set_title('CDF for Scheduled Traffic (ST)')
+    sns.ecdfplot(ax=axes[1], data=FlowBE, x="Latency (ms)", lw=7,
+    		stat='proportion', log_scale=(False, False))  #.set_title('CDF for Best Effort Traffic (BE)')
+    axes[0].set_ylabel("CDF for Scheduled Traffic (ST)")
+    axes[1].set_ylabel("CDF for Best Effort Traffic (BE)")
+    fig.suptitle('Cumulative Distribution Function (CDF) of Latency')  #, y=1)
     # plt.figure()
     # LatencyCDF = sns.FacetGrid(Time_Data, col='Flows', sharex=False)
     # LatencyCDF.map(sns.ecdfplot, "Latency (ms)")
     # LatencyCDF.set_ylabels("CDF/Proportion")
+    # plt.grid()
+    plt.tight_layout()
     # LatencyCountCDF = sns.FacetGrid(Time_Data, col='Flows', sharex=False)
     # LatencyCountCDF.map(sns.ecdfplot, "Latency (ms)", stat="count")
 
@@ -278,3 +294,4 @@ plt.show()
 # Such as do strongly-typed code (convert some things to signed int) etc.
 # dftx = dftx.astype({'Flows': 'uint8'})
 # Time_Data = Time_Data.astype({'Latency (ms)': 'float'})
+
