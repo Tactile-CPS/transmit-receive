@@ -117,7 +117,7 @@ def print_all_info():
     print(Time_Data['Flows'].value_counts())
 
     print('======> PacketLoss TimeSeries')
-    print(AggregatedCount[['Time Axis', 'Flows', 'Loss', 'Loss %']])
+    print(AggregatedCount[['Time Axis', 'Flows', 'Loss', 'Loss %']].transpose())
 
 
 print_all_info()
@@ -200,7 +200,8 @@ if Plotting == "Subplots":
     ' PacketLoss CDF - PacketPlot'
     sns.ecdfplot(ax=axes[0, 2], data=FlowST[FlowST['Loss']], x='Packet Number')
     sns.ecdfplot(ax=axes[1, 2], data=FlowBE[FlowBE['Loss']], x='Packet Number')
-    sns.ecdfplot(ax=axes[2, 2], data=Time_Data[Time_Data['Loss']], x='Packet Number', hue='Flows')
+    if not Time_Data[Time_Data['Loss']].empty:
+        sns.ecdfplot(ax=axes[2, 2], data=Time_Data[Time_Data['Loss']], x='Packet Number', hue='Flows')
 
 elif Plotting == "Separate":
 

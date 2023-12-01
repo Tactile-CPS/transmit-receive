@@ -18,15 +18,15 @@ import time
 DEBUG = False
 
 
-iface = 'enp1s0f0'  # 'lo', 'enp1s0np0', 'random'
+iface = 'enp2s0'  # 'lo', 'enp1s0np0', 'random', 'enp1s0f0'
 srcmac = '90:e2:ba:0b:17:10'  # get_if_hwaddr(iface)
 dstmac = '90:e2:ba:0b:17:11'  # '00:1b:21:c2:54:42'
-srcip = '100.1.10.10'
-dstip = '100.1.10.11'
+srcip = '202.41.125.9'  # '100.1.10.10'  # '202.41.125,9'
+dstip = '202.141.25.8'  # '100.1.10.11'  # '202.141.25.8'
 srcportudp = 6000
 # For test packets - 1 and 5, for production packets - 10 and 65536
 # srcportudprange = srcportudp + 1
-num_packets = 2
+num_packets = 10
 
 # Change the vlan tag to generate desired vlan tagged packet
 # Change the udp destination port to generate desired udp packet
@@ -40,7 +40,7 @@ vlanid_to_priority = {
     '3': '1',
     '4': '2'
 }
-packetSizes = {100, 500, 1000}
+packetSizes = {100}  #, 500, 1000}
 
 # To see fields,layers and fieldsizes, run scapy in terminal and
 # call ls(IP()) for example
