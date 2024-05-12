@@ -17,7 +17,7 @@
 # (PC#1) MultiNIC_TX_port --> one or multiple | NFP_P1 --> NFP_P0 | --> (PC #2) MultiNIC_RX_port
 #                                             ---------------------
 
-source ~/Documents/tsn-project/configuration-variables.sh
+source ~/Documents/tsn-project/config/configuration-for-experiments/configuration-variables-3systems.sh
 
 # Script parameters:
 

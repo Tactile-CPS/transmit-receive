@@ -8,7 +8,7 @@
 # 3. Then converts pcap to raw hexdump in the form of json using tshark, and then converts json to csv (one line for each packet)
 # 4. Received packets have a different VLAN ID (identified by vlan.id=7, this modification is done by the switch's c_packetprocessing function), compared to transmitted packets and thus can be filtered out
 
-source "$HOME"/Documents/tsn-project/configuration-variables.sh
+source "$HOME"/Documents/tsn-project/config/configuration-for-experiments/configuration-variables-3systems.sh
 Date=$(date "+%Y%m%d-%H")
 
 # Script parameters:
