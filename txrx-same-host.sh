@@ -88,10 +88,10 @@ ip netns exec ns1 iperf -c 192.168.2.22 -B 192.168.2.12 -u -p 5002 -t 10 -i 1 -b
 # ------------------------------------
 # Section 2a: If capture is needed
 # ------------------------------------
-ip netns exec ns1 tshark -i enp9s0f0.11 -a duration:5 -s 118 -w /tmp/capture-experiment-1-tx.pcap &
-ip netns exec ns1 tshark -i enp9s0f0.12 -a duration:5 -s 118 -w /tmp/capture-experiment-2-tx.pcap &
-ip netns exec ns2 tshark -i enp9s0f1.11 -a duration:5 -s 118 -w /tmp/capture-experiment-1-rx.pcap &
-ip netns exec ns2 tshark -i enp9s0f1.12 -a duration:5 -s 118 -w /tmp/capture-experiment-2-rx.pcap &
+ip netns exec ns1 tshark -i enp9s0f0.11 -a duration:5 -s 118 -w /tmp/capture-experiment-tx1.pcap &
+ip netns exec ns1 tshark -i enp9s0f0.12 -a duration:5 -s 118 -w /tmp/capture-experiment-tx2.pcap &
+ip netns exec ns2 tshark -i enp9s0f1.11 -a duration:5 -s 118 -w /tmp/capture-experiment-rx1.pcap &
+ip netns exec ns2 tshark -i enp9s0f1.12 -a duration:5 -s 118 -w /tmp/capture-experiment-rx2.pcap &
 wait
 
 # ------------------------------------
@@ -109,20 +109,24 @@ ip netns delete ns1
 ip netns delete ns2
 
 COMMENT << HERE
-# Optional : If capture enabled for fine-grained analysis,
-# convert pcap to csv for analysis using python script'
+# ------------------------------------
+# Section 2a: If capture was needed for fine-grained analysis
+# ------------------------------------
+# Convert pcap to csv for analysis using python script
+
 args="-T fields -E header=y -E separator=, \
 -e udp.dstport -e frame.time_epoch -e frame.len \
 -e iperf.tos -e iperf.id -e iperf.id2 -e iperf.sec -e iperf.usec"
 # -e iperf.mport -e ip.src -e ip.dst -e ip.id -e udp.srcport -e udp.dstport  \
 
 # Each flow's tx and rx should be put into {tx1,rx1,tx2,rx2,..}.csv
-eval tshark -r /tmp/capture-experiment-1-tx.pcap $args > /tmp/capture-experiment-1-tx.csv &
-eval tshark -r /tmp/capture-experiment-1-rx.pcap $args > /tmp/capture-experiment-1-rx.csv &
-eval tshark -r /tmp/capture-experiment-2-tx.pcap $args > /tmp/capture-experiment-2-tx.csv &
-eval tshark -r /tmp/capture-experiment-2-rx.pcap $args > /tmp/capture-experiment-2-rx.csv &
+eval tshark -r /tmp/capture-experiment-tx1.pcap $args > /tmp/capture-experiment-tx1.csv &
+eval tshark -r /tmp/capture-experiment-rx1.pcap $args > /tmp/capture-experiment-rx1.csv &
+eval tshark -r /tmp/capture-experiment-tx2.pcap $args > /tmp/capture-experiment-tx2.csv &
+eval tshark -r /tmp/capture-experiment-rx2.pcap $args > /tmp/capture-experiment-rx2.csv &
 wait
-./txrx-same-system-analysis.py
+./txrx-analysis.py
+# or ./txrx-analysis-rxonly.py
 HERE
 
 echo '=================== Done !! ====================='
