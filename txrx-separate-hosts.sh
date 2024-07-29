@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Description   : Runs iperf2 tests on separate hosts (Real and/or in Mininet)
+# Description   : Generates, transmits and receives packet flows using 2-port NIC on separate end-hosts
 # Author        : Joydeep Pal
-# Date Created	: 06-Dec-2023
-# Date Modified	: 07-Jun-2024
+# Date Created  : 06-Dec-2023
+# Date Modified : 07-Jun-2024
 
 # Note : Can try with `sudo ... -z` (Linux real-time scheduler) to see if you get reduced latency
 
@@ -20,16 +20,19 @@ INTERFACE1="h1-eth0"
 INTERFACE2="h2-eth0"
 
 COMMENT << HERE
-# Optional : Capture packet for fine-grained analysis
-
+# ------------------------------------
+# Section 1a: If capture is needed (optional)
+# ------------------------------------
+# Capture packets for fine-grained analysis
 # Start packet capture individually for each flow at server (rx)
-tshark -i $INTERFACE1 -a duration:15 -w rx-exp1.pcapng &
-tshark -i $INTERFACE2 -a duration:15 -w tx-exp1.pcapng &
+tshark -i $INTERFACE1 -a duration:15 -s 118 -w /tmp/capture-experiment-rx1.pcap &
+tshark -i $INTERFACE2 -a duration:15 -s 118 -w /tmp/capture-experiment-rx2.pcap &
 HERE
 
 # Start iperf server for each flow
-iperf -s -u -p 5010 -B '10.3.3.1'   -i 1 -P 1 -e --histogram --jitter-histograms & # >> flow1-rx.csv &
-iperf -s -u -p 5011 -B '10.10.10.1' -i 1 -P 1 -e --histogram --jitter-histograms &
+iperf -s -u -p 5001 > server1_stats.txt &
+iperf -s -u -p 5002 > server2_stats.txt &
+# iperf -s -u -B $INTERFACE2 -P 1 -e --histogram --jitter-histograms -i 1 > server1_stats.txt 2>&1 &
 
 # Start iperf client for each flow
 iperf -c '10.3.3.1' -u -p 5010 -B '10.6.6.2' -t 10 -P 1 -i 1 -b 1m -l 1000 --tos 0 -e --trip-times & # >> flow1-tx.csv & \
@@ -55,10 +58,6 @@ eval tshark -r /tmp/capture-experiment.pcap $args > tx1.csv &
 eval tshark -r /tmp/capture-experiment.pcap $args > rx1.csv &
 eval tshark -r /tmp/capture-experiment.pcap $args > tx2.csv &
 wait
-
-sleep 1
-ls -al *.csv
-exit
 
 COMMANDS << HERE
 echo 'Ping from h1 to h2'

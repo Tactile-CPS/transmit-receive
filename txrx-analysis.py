@@ -36,7 +36,7 @@ def read_csv_files():
     Returns a list of dataframes
     """
     # List of required csv file names, modify according to number of flows
-    csv_directory = "/tmp"
+    csv_directory = "/tmp/tmpexpt/"
     # It also automatically includes the tx counterpart such as 'capture-experiment-tx1.csv'
     file_names = ['capture-experiment-rx1.csv', 'capture-experiment-rx2.csv']
     # Create a dictionary to hold dataframes
