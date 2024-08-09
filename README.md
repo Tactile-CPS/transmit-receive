@@ -23,3 +23,6 @@
   - For latency, uses rx capture's epoch time and iperf's tx time 
 - `'txrx-analysis.py'`
   - For latency, uses tx and rx capture's epoch time
+
+# Notes
+- For utas, datarate = 6.6M, time = 2s using archive-txrx scripts

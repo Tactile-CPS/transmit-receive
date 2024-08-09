@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# -------------------------------------------------------
 # Description   : Generates, transmits and receives packet flows using 2-port NIC on same end-host
 # Author        : Joydeep Pal
 # Date          : Nov-2022
 # Date Modified : 10-Jan-2023, 18-May-2023, 06-Dec-2023 (Overhaul), 05-Jun-2024 (Overhaul)
+# -------------------------------------------------------
 
+# -------------------------------------------------------
+# Details:
 # System Design:
 #
 # Port 1 --> || --> Port 2
@@ -13,7 +17,7 @@
 # are to be used on Tx and Rx ports in the same host. Otherwise these commands don't send packets
 # out to the wire because kernel routes it internally. Run in root.
 # Any Tx flow should go to another interface, same interface doesn't support both tx and rx.
-set -e
+# -------------------------------------------------------
 
 # Define interface names
 INTERFACE1="enp4s0f0"
@@ -46,7 +50,7 @@ COMMENT << HERE
 # Capture packets for fine-grained analysis
 # Start packet capture individually for each flow at server (rx)
 tshark -i $INTERFACE1 -a duration:7 -s 118 -w /tmp/capture-experiment-rx1.pcap &
-tshark -i $INTERFACE1 -a duration:7 -s 118 -w /tmp/capture-experiment-tx1.pcap &
+tshark -i $INTERFACE2 -a duration:7 -s 118 -w /tmp/capture-experiment-tx1.pcap &
 HERE
 
 # Start iperf server & iperf client for each flow
@@ -80,19 +84,28 @@ ip netns exec ns2 ip addr add 192.168.2.22/24 dev enp4s0f1.12
 ip netns exec ns2 ip link set enp4s0f1.11 up
 ip netns exec ns2 ip link set enp4s0f1.12 up
 
+## Configure arp
+ip netns exec ns1 ip neigh add 192.168.1.21 lladdr 90:e2:ba:f4:e0:e5 dev enp4s0f0.11
+ip netns exec ns1 ip neigh add 192.168.2.22 lladdr 90:e2:ba:f4:e0:e5 dev enp4s0f0.12
+ip netns exec ns2 ip neigh add 192.168.1.11 lladdr 90:e2:ba:f4:e0:e5 dev enp4s0f1.11
+ip netns exec ns2 ip neigh add 192.168.2.12 lladdr 90:e2:ba:f4:e0:e5 dev enp4s0f1.12
+
 ## iperf server and client
-ip netns exec ns2 iperf -s -B 192.168.1.21 -u -p 5001
-ip netns exec ns2 iperf -s -B 192.168.2.22 -u -p 5002
-ip netns exec ns1 iperf -c 192.168.1.21 -B 192.168.1.11 -u -p 5001 -t 10 -i 1 -b 10m -e --trip-times --tos 0
-ip netns exec ns1 iperf -c 192.168.2.22 -B 192.168.2.12 -u -p 5002 -t 10 -i 1 -b 10m -e --trip-times --tos 0
+ip netns exec ns2 iperf -s -B 192.168.1.21 -u -p 5001 -i 1 -t 12 -z > /tmp/server1_stats.txt &
+ip netns exec ns2 iperf -s -B 192.168.2.22 -u -p 5002 -i 1 -t 12 -z > /tmp/server2_stats.txt &
+sleep 1
+ip netns exec ns1 iperf -c 192.168.1.21 -B 192.168.1.11 -u -p 5001 -t 10 -z -i 1 -b 400M -e --trip-times --tos 0 --no-udp-fin > /tmp/client1_stats.txt &
+ip netns exec ns1 iperf -c 192.168.2.22 -B 192.168.2.12 -u -p 5002 -t 10 -z -i 1 -b 400M -e --trip-times --tos 0 --no-udp-fin > /tmp/client2_stats.txt &
+wait
 
 # ------------------------------------
 # Section 2a: If capture is needed
 # ------------------------------------
-ip netns exec ns1 tshark -i enp4s0f0.11 -a duration:5 -s 118 -w /tmp/capture-experiment-tx1.pcap &
-ip netns exec ns1 tshark -i enp4s0f0.12 -a duration:5 -s 118 -w /tmp/capture-experiment-tx2.pcap &
-ip netns exec ns2 tshark -i enp4s0f1.11 -a duration:5 -s 118 -w /tmp/capture-experiment-rx1.pcap &
-ip netns exec ns2 tshark -i enp4s0f1.12 -a duration:5 -s 118 -w /tmp/capture-experiment-rx2.pcap &
+#ip netns exec ns1 tshark -i enp4s0f0.11 -f "vlan and udp dst port 5001" -a duration:12 -s 118 -w /tmp/capture-experiment-tx1.pcap &
+ip netns exec ns1 tshark -i enp4s0f0.11 -f "udp dst port 5001" -a duration:15 -s 118 -w /tmp/capture-experiment-tx1.pcap &
+ip netns exec ns1 tshark -i enp4s0f0.12 -f "udp dst port 5002" -a duration:15 -s 118 -w /tmp/capture-experiment-tx2.pcap &
+ip netns exec ns2 tshark -i enp4s0f1.11 -f "udp dst port 5001" -a duration:15 -s 118 -w /tmp/capture-experiment-rx1.pcap &
+ip netns exec ns2 tshark -i enp4s0f1.12 -f "udp dst port 5002" -a duration:15 -s 118 -w /tmp/capture-experiment-rx2.pcap &
 wait
 
 # ------------------------------------
@@ -118,7 +131,7 @@ COMMENT << HERE
 args="-T fields -E header=y -E separator=, \
 -e udp.dstport -e frame.time_epoch -e frame.len \
 -e iperf.tos -e iperf.id -e iperf.id2 -e iperf.sec -e iperf.usec"
-# -e iperf.mport -e ip.src -e ip.dst -e ip.id -e udp.srcport -e udp.dstport  \
+# -e iperf.mport -e ip.src -e ip.dst -e ip.id -e udp.srcport \
 
 # Each flow's tx and rx should be put into {tx1,rx1,tx2,rx2,..}.csv
 eval tshark -r /tmp/capture-experiment-tx1.pcap $args > /tmp/capture-experiment-tx1.csv &
@@ -155,9 +168,6 @@ for ((i=0; i<${#commands[@]}; i++))
 do
   gnome-terminal --window --title="Terminal $((i+1))" -- bash -c "${commands[i]}; exec bash"
 done
-
-
-
 echo '=================== Done !! ====================='
 echo ' '
 

@@ -16,7 +16,7 @@ generates plots using seaborn.
 Flows can be ST and BE flows.
 
 Usage:
-1. Place the tx and rx CSV files in /tmp/tmpexp/.
+1. Place the tx and rx CSV files in /tmp/.
 2. Run the script
 3. It infers the no_of_flows and proceeds accordingly.
 """
@@ -38,7 +38,7 @@ def read_csv_files():
     # List of required csv file names, modify according to number of flows
     csv_directory = "/tmp/tmpexp/"
     # It also automatically includes the tx counterpart such as 'capture-experiment-tx1.csv'
-    file_names = ['capture-experiment-rx1.csv', 'capture-experiment-rx2.csv']
+    file_names = ['expt-utas-rx1.csv', 'expt-utas-rx2.csv']
     # Create a dictionary to hold dataframes
     df_dict = {}
 
@@ -75,25 +75,27 @@ def extract_statistics(df_dict):
         # Get the corresponding rx dataframe
         filename_rx = filename.replace('tx', 'rx')
         df_rx = df_dict[filename_rx]
+        df_tx['ip.id'] = df_tx['ip.id'].apply(lambda x: int(x, 16))
+        df_rx['ip.id'] = df_rx['ip.id'].apply(lambda x: int(x, 16))
 
-        # Merge the dataframes on 'iperf.id' and 'iperf.id2'
-        df = pd.merge(df_tx, df_rx, on=['iperf.id', 'iperf.id2'], how='right')
+        # Merge the dataframes on 'ip.id'
+        df = pd.merge(df_tx, df_rx, on=['ip.id'], how='right')
 
-        # Write txtime (in microseconds) using iperf.sec and .usec
-        df['time_tx'] = df['iperf.sec_x'] * 1e6 + df['iperf.usec_x']
+        # Write txtime (in microseconds) using frame.epoch tx time
+        df['time_tx'] = df['frame.time_epoch_x'] * 1e6
 
         # Calculate the latency (in microseconds)
         # rx capture - iperf tx
-        df['latency2'] = (df['frame.time_epoch_y'] - df['iperf.sec_x']) * 1e6 - df['iperf.usec_x']
+        # df['latency'] = (df['frame.time_epoch_y'] - df['iperf.sec_x']) * 1e6 - df['iperf.usec_x']
         # rx capture - tx capture
         df['latency'] = (df['frame.time_epoch_y'] - df['frame.time_epoch_x']) * 1e6
 
         # Rolling jitter - Calculate the rolling standard deviation (jitter) for the previous 20 rows
-        df['jitter'] = df['latency'].rolling(window=20).std()
+        df['jitter'] = df.sort_values(by='ip.id')['latency'].rolling(window=20).std()
 
-        # Also, extract number of lost packets and out-of-order packets
+        # Also, extract number of lost packets
         # Calculate the difference between consecutive 'iperf.id' values
-        diff_values = df.sort_values(by='iperf.id')['iperf.id'].diff()
+        diff_values = df.sort_values(by='ip.id')['ip.id'].diff()
         # Identify where the difference is greater than 1 (packet loss occurred)
         lost_packets = diff_values > 1
         # Calculate the cumulative sum of lost packets, subtracting 1 for the current packet
@@ -103,14 +105,14 @@ def extract_statistics(df_dict):
         # Initialize the 'out-of-order' column with zeros
         df['out-of-order'] = 0
         # Calculate the difference between consecutive 'iperf.id' values
-        diff_values = df['iperf.id'].diff()
+        diff_values = df['ip.id'].diff()
         # Identify where the 'iperf.id' value of the subsequent row is less than the current row
         out_of_order_conditions = diff_values < 0
         # Increment the 'out-of-order' column value by 1 each time the condition is met
         df['out-of-order'] = out_of_order_conditions.cumsum()
 
         # Store the stats values in the dictionary
-        columns_to_keep = ['time_tx', 'frame.time_epoch_x', 'iperf.id', 'latency', 'jitter', 'lost', 'out-of-order']
+        columns_to_keep = ['time_tx', 'frame.time_epoch_x', 'ip.id', 'latency', 'jitter', 'lost', 'out-of-order']
         stats_dict[filename] = df[columns_to_keep]
 
     return stats_dict
@@ -139,29 +141,7 @@ def plot_statistics(stats_dict):
 
     # Define the columns you want to plot (excluding 'frame.time_epoch_x' and 'iperf.id')
     columns_to_plot = [column for column in stats_dict.get('df_tx1').columns if column not
-                       in ['time_tx', 'frame.time_epoch_x', 'iperf.id']] #, 'lost', 'out-of-order']]
-
-    ' Time-Series & CDF plot for each flow '
-    # for file, df in stats_dict.items():
-    #     # Create a figure and a list of subplots
-    #     fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6), sharex=True)
-    #     # Plot each column on a separate subplot
-    #     for i, column in enumerate(columns_to_plot):
-    #         sns.lineplot(ax=axes[i], data=df, x=df.index, y=column)
-    #         axes[i].set_ylabel(column)
-    #         axes[i].set_title(f'Time Series of {column}')
-    #
-    #     # CDF plot
-    #     # # Create a figure and a list of subplots
-    #     # fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6))
-    #     # # Plot each column on a separate subplot
-    #     # for i, column in enumerate(columns_to_plot):
-    #     #     sns.ecdfplot(ax=axes[i], data=df, x=column, lw=2, stat='count', log_scale=(False, False))
-    #     #     axes[i].set_title(f'CDF of {column}')
-    #
-    #     # Adjust the layout
-    #     plt.suptitle("Packet Flow Statistics", y=1.02)
-    #     plt.tight_layout()
+                       in ['time_tx', 'frame.time_epoch_x', 'iperf.id', 'lost', 'out-of-order']]
 
     ' CDF plot - side-by-side latency plot for 1 ST and 1 BE flow '
     # fig, axes = plt.subplots(1, 2, tight_layout=True)  # , sharex='col')
@@ -184,8 +164,6 @@ def plot_statistics(stats_dict):
     axes[0, 1].set_title('Latency TimeSeries [ST]')
     axes[1, 1].set_title('Latency TimeSeries [BE}')
     axes[2, 1].set_title('Latency TimeSeries [ST, BE]')
-    # Important : Plot of received timestamp for these flows shows clear demarcation
-    # sns.scatterplot(data=df, x='iperf.id', y= 'frame.time_epoch')
 
     # Latency CDF
     sns.ecdfplot(ax=axes[0, 2], data=stats_dict.get('df_tx1'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
@@ -216,6 +194,44 @@ def plot_statistics(stats_dict):
 
     fig.suptitle('Latency vs Time - for Scheduled Traffic and Best Effort flows - [Scheduled Traffic (ST)]', y=1)
     plt.tight_layout()
+
+
+def summary_to_csv():
+
+    ''' PacketLoss '''
+    fig, axes = plt.subplots(3, 3, tight_layout=True)  # , sharex='col')
+    ' PacketLoss TimeSeries '
+    sns.scatterplot(ax=axes[0, 0], data=FlowSTLoss, x='Time Axis', y='Loss %')
+    sns.scatterplot(ax=axes[1, 0], data=FlowBELoss, x='Time Axis', y='Loss %')
+    sns.scatterplot(ax=axes[2, 0], data=AggregatedCount, x='Time Axis', y='Loss %', hue='Flows', style='Flows', size='Flows', palette='dark', legend=True)
+    #axes[0, 0].grid()
+    #axes[1, 0].grid()
+    axes[0, 0].set_title('PacketLoss TimeSeries [ST]')
+    axes[1, 0].set_title('PacketLoss TimeSeries [BE]')
+    axes[2, 0].set_title('PacketLoss TimeSeries [ST, BE]')
+    axes[0, 0].set_xlabel('Time')
+    axes[1, 0].set_xlabel('Time')
+    axes[2, 0].set_xlabel('Time')
+    # sns.despine()
+
+    ' PacketLoss TimeSeries - PacketPlot '
+    sns.scatterplot(ax=axes[0, 1], data=FlowST.iloc[len(FlowST)-40:len(FlowST)], x='Packet Number', y='Loss')
+    sns.scatterplot(ax=axes[1, 1], data=FlowBE.iloc[len(FlowBE)*2//3 - 100:len(FlowBE)*2//3], x='Packet Number', y='Loss')
+    sns.scatterplot(ax=axes[2, 1], data=Time_Data.iloc[len(FlowBE)//3:len(FlowBE)*2//3], x='Packet Number', y='Loss', hue='Flows', style='Flows', size='Flows', palette='dark')
+    axes[0, 1].set_title('PacketLoss TimeSeries - PacketPlot [ST]')
+    axes[1, 1].set_title('PacketLoss TimeSeries - PacketPlot [BE}')
+    axes[2, 1].set_title('PacketLoss TimeSeries - PacketPlot [ST, BE]')
+
+    ' PacketLoss CDF - PacketPlot'
+    # sns.ecdfplot(ax=axes[0, 2], data=FlowST[FlowST['Loss']], x='Packet Number')
+    # sns.ecdfplot(ax=axes[1, 2], data=FlowBE[FlowBE['Loss']], x='Packet Number')
+    # sns.ecdfplot(ax=axes[2, 2], data=Time_Data[Time_Data['Loss']], x='Packet Number', hue='Flows')
+
+    plt.show()
+
+# # If renaming is required
+# df.rename(columns={"vlan.id": "Flows", 'frame.time_epoch': 'Epoch Time (Tx)', 'frame.time_epoch': 'Epoch Time (Rx)'}, inplace=True)
+# df['vlan.id'].replace({2: 'ST', 3: 'BE', 4: 'ST2'}, inplace=True)
 
 
 def main():
