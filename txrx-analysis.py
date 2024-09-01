@@ -1,4 +1,4 @@
-#!/home/joy/.virtualenvs/venv/bin/python3
+#!/usr/bin/env python
 """
 Packet Flow Statistics Analyzer
 
@@ -37,8 +37,8 @@ def read_csv_files():
     """
     # List of required csv file names, modify according to number of flows
     csv_directory = "/tmp/tmpexp/"
-    # It also automatically includes the tx counterpart such as 'capture-experiment-tx1.csv'
-    file_names = ['capture-experiment-rx1.csv', 'capture-experiment-rx2.csv']
+    # It also automatically includes the tx counterpart such as 'expt-tx1.csv'
+    file_names = ['expt-rx1.csv', 'expt-rx2.csv']
     # Create a dictionary to hold dataframes
     df_dict = {}
 
@@ -48,13 +48,13 @@ def read_csv_files():
         file_path = os.path.join(csv_directory, file_name)
         file_path_tx = os.path.join(csv_directory, file_name_tx)
 
-        # Read the files into dataframes names df_tx1, df_tx2 etc.
-        df_name_tx = "df_" + file_name_tx.split(".")[0].split("-")[2]
-        df_name = "df_" + file_name.split(".")[0].split("-")[2]
+        # Read the files into dataframe names df_tx1, df_tx2 etc.
+        df_name_tx = "df_" + file_name_tx.split(".")[0].split("-")[1]
+        df_name = "df_" + file_name.split(".")[0].split("-")[1]
         df_dict[df_name_tx] = pd.read_csv(file_path_tx)
         df_dict[df_name] = pd.read_csv(file_path)
         # Remove the last two rows
-        df_dict[df_name_tx] = df_dict[df_name_tx].iloc[:-2]
+        df_dict[df_name_tx] = df_dict[df_name_tx].iloc[:-2]  #[1000:51000]
         df_dict[df_name] = df_dict[df_name].iloc[:-2]
 
     return df_dict
@@ -79,8 +79,8 @@ def extract_statistics(df_dict):
         # Merge the dataframes on 'iperf.id' and 'iperf.id2'
         df = pd.merge(df_tx, df_rx, on=['iperf.id', 'iperf.id2'], how='right')
 
-        # Write txtime (in microseconds) using iperf.sec and .usec
-        df['time_tx'] = df['iperf.sec_x'] * 1e6 + df['iperf.usec_x']
+        # Write txtime (in microseconds) using frame.epoch tx time/iperf.sec and .usec
+        df['time_tx'] = df['iperf.sec_x'] * 1e6 + df['iperf.usec_x']  #df['frame.time_epoch_x'] * 1e6
 
         # Calculate the latency (in microseconds)
         # rx capture - iperf tx
@@ -89,9 +89,9 @@ def extract_statistics(df_dict):
         df['latency'] = (df['frame.time_epoch_y'] - df['frame.time_epoch_x']) * 1e6
 
         # Rolling jitter - Calculate the rolling standard deviation (jitter) for the previous 20 rows
-        df['jitter'] = df['latency'].rolling(window=20).std()
+        df['jitter'] = df.sort_values(by='iperf.id')['latency'].rolling(window=20).std()
 
-        # Also, extract number of lost packets and out-of-order packets
+        # Also, extract number of lost packets
         # Calculate the difference between consecutive 'iperf.id' values
         diff_values = df.sort_values(by='iperf.id')['iperf.id'].diff()
         # Identify where the difference is greater than 1 (packet loss occurred)
@@ -139,29 +139,29 @@ def plot_statistics(stats_dict):
 
     # Define the columns you want to plot (excluding 'frame.time_epoch_x' and 'iperf.id')
     columns_to_plot = [column for column in stats_dict.get('df_tx1').columns if column not
-                       in ['time_tx', 'frame.time_epoch_x', 'iperf.id']] #, 'lost', 'out-of-order']]
+                       in ['time_tx', 'frame.time_epoch_x', 'iperf.id', 'latency', 'jitter']]  #, 'lost', 'out-of-order']]
 
     ' Time-Series & CDF plot for each flow '
-    # for file, df in stats_dict.items():
-    #     # Create a figure and a list of subplots
-    #     fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6), sharex=True)
-    #     # Plot each column on a separate subplot
-    #     for i, column in enumerate(columns_to_plot):
-    #         sns.lineplot(ax=axes[i], data=df, x=df.index, y=column)
-    #         axes[i].set_ylabel(column)
-    #         axes[i].set_title(f'Time Series of {column}')
-    #
-    #     # CDF plot
-    #     # # Create a figure and a list of subplots
-    #     # fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6))
-    #     # # Plot each column on a separate subplot
-    #     # for i, column in enumerate(columns_to_plot):
-    #     #     sns.ecdfplot(ax=axes[i], data=df, x=column, lw=2, stat='count', log_scale=(False, False))
-    #     #     axes[i].set_title(f'CDF of {column}')
-    #
-    #     # Adjust the layout
-    #     plt.suptitle("Packet Flow Statistics", y=1.02)
-    #     plt.tight_layout()
+    for file, df in stats_dict.items():
+        # Create a figure and a list of subplots
+        fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6), sharex=True)
+        # Plot each column on a separate subplot
+        for i, column in enumerate(columns_to_plot):
+            sns.scatterplot(ax=axes[i], data=df, x=df.index, y=column)
+            axes[i].set_ylabel(column)
+            axes[i].set_title(f'Time Series of {column}')
+
+        # # CDF plot
+        # # Create a figure and a list of subplots
+        # fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6))
+        # # Plot each column on a separate subplot
+        # for i, column in enumerate(columns_to_plot):
+        #     sns.ecdfplot(ax=axes[i], data=df, x=column, lw=2, stat='count', log_scale=(False, False))
+        #     axes[i].set_title(f'CDF of {column}')
+        #
+        # # Adjust the layout
+        # plt.suptitle("Packet Flow Statistics", y=1.02)
+        # plt.tight_layout()
 
     ' CDF plot - side-by-side latency plot for 1 ST and 1 BE flow '
     # fig, axes = plt.subplots(1, 2, tight_layout=True)  # , sharex='col')

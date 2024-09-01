@@ -1,4 +1,4 @@
-#!/home/joy/.virtualenvs/venv/bin/python3
+#!/usr/bin/env python
 """
 Packet Flow Statistics Analyzer
 
@@ -36,7 +36,7 @@ def read_csv_files():
     """
     # List of required csv file names, modify according to number of flows
     csv_directory = "/tmp/tmpexp/"
-    file_names = ['capture-experiment-rx1.csv', 'capture-experiment-rx2.csv']
+    file_names = ['expt-rx1.csv', 'expt-rx2.csv']
     # Create a dictionary to hold dataframes
     df_dict = {}
 
@@ -44,8 +44,8 @@ def read_csv_files():
     for file_name in file_names:
         file_path = os.path.join(csv_directory, file_name)
 
-        # Create dataframe name like df_rx1, df_rx2, etc.
-        df_name = "df_" + file_name.split(".")[0].split("-")[2]
+        # Read the files into dataframe names like df_rx1, df_rx2, etc.
+        df_name = "df_" + file_name.split(".")[0].split("-")[1]
         df_dict[df_name] = pd.read_csv(file_path)
         # Remove the last two rows
         df_dict[df_name] = df_dict[df_name].iloc[:-2]
@@ -71,9 +71,9 @@ def extract_statistics(df_dict):
         df['latency'] = (df['frame.time_epoch'] - df['iperf.sec']) * 1e6 - df['iperf.usec']
 
         # Rolling jitter - Calculate the rolling standard deviation (jitter) for the previous 20 rows
-        df['jitter'] = df['latency'].rolling(window=20).std()
+        df['jitter'] = df.sort_values(by='iperf.id')['latency'].rolling(window=20).std()
 
-        # Also, extract number of lost packets and out-of-order packets
+        # Also, extract number of lost packets
         # Calculate the difference between consecutive 'iperf.id' values
         diff_values = df.sort_values(by='iperf.id')['iperf.id'].diff()
         # Identify where the difference is greater than 1 (packet loss occurred)
@@ -113,42 +113,42 @@ def plot_statistics(stats_dict):
     # Prepare data for plots
     for file, df in stats_dict.items():
         # Ensure the timestamp column is of datetime type and set as the index
-        df['frame.time_epoch_x'] = pd.to_datetime(df['frame.time_epoch_x'], unit='s')
+        df['frame.time_epoch'] = pd.to_datetime(df['frame.time_epoch'], unit='s')
         # Normalize the timestamps to start from 0
-        df['time_from_start(s)'] = (df['frame.time_epoch_x'] - df['frame.time_epoch_x'].iloc[0]).dt.total_seconds()
+        df['time_from_start(s)'] = (df['frame.time_epoch'] - df['frame.time_epoch'].iloc[0]).dt.total_seconds()
         df.set_index('time_from_start(s)', inplace=True)
         # df.set_index('iperf.id', inplace=True)
 
-    # Define the columns you want to plot (excluding 'frame.time_epoch_x' and 'iperf.id')
-    columns_to_plot = [column for column in stats_dict.get('df_tx1').columns if column not
-                       in ['time_tx', 'frame.time_epoch_x', 'iperf.id']] #, 'lost', 'out-of-order']]
+    # Define the columns you want to plot (excluding 'frame.time_epoch' and 'iperf.id')
+    columns_to_plot = [column for column in stats_dict.get('df_rx1').columns if column not
+                       in ['time_tx', 'frame.time_epoch', 'iperf.id', 'latency', 'jitter']]  #, 'lost', 'out-of-order']]
 
     ' Time-Series & CDF plot for each flow '
-    # for file, df in stats_dict.items():
-    #     # Create a figure and a list of subplots
-    #     fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6), sharex=True)
-    #     # Plot each column on a separate subplot
-    #     for i, column in enumerate(columns_to_plot):
-    #         sns.lineplot(ax=axes[i], data=df, x=df.index, y=column)
-    #         axes[i].set_ylabel(column)
-    #         axes[i].set_title(f'Time Series of {column}')
-    #
-    #     # CDF plot
-    #     # # Create a figure and a list of subplots
-    #     # fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6))
-    #     # # Plot each column on a separate subplot
-    #     # for i, column in enumerate(columns_to_plot):
-    #     #     sns.ecdfplot(ax=axes[i], data=df, x=column, lw=2, stat='count', log_scale=(False, False))
-    #     #     axes[i].set_title(f'CDF of {column}')
-    #
-    #     # Adjust the layout
-    #     plt.suptitle("Packet Flow Statistics", y=1.02)
-    #     plt.tight_layout()
+    for file, df in stats_dict.items():
+        # Create a figure and a list of subplots
+        fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6), sharex=True)
+        # Plot each column on a separate subplot
+        for i, column in enumerate(columns_to_plot):
+            sns.scatterplot(ax=axes[i], data=df, x=df.index, y=column)
+            axes[i].set_ylabel(column)
+            axes[i].set_title(f'Time Series of {column}')
+
+        # CDF plot
+        # Create a figure and a list of subplots
+        fig, axes = plt.subplots(nrows=len(columns_to_plot), ncols=1, figsize=(10, 6))
+        # Plot each column on a separate subplot
+        for i, column in enumerate(columns_to_plot):
+            sns.ecdfplot(ax=axes[i], data=df, x=column, lw=2, stat='count', log_scale=(False, False))
+            axes[i].set_title(f'CDF of {column}')
+
+        # Adjust the layout
+        plt.suptitle("Packet Flow Statistics", y=1.02)
+        plt.tight_layout()
 
     ' CDF plot - side-by-side latency plot for 1 ST and 1 BE flow '
     # fig, axes = plt.subplots(1, 2, tight_layout=True)  # , sharex='col')
-    # sns.ecdfplot(ax=axes[0], data=stats_dict.get('df_tx1'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
-    # sns.ecdfplot(ax=axes[1], data=stats_dict.get('df_tx2'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
+    # sns.ecdfplot(ax=axes[0], data=stats_dict.get('df_rx1'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
+    # sns.ecdfplot(ax=axes[1], data=stats_dict.get('df_rx2'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
     # axes[0].set_ylabel('Latency CDF [ST]')
     # axes[1].set_ylabel('Latency CDF [BE]')
     # # ax.set_xlabel('Latency (ms)')
@@ -158,8 +158,8 @@ def plot_statistics(stats_dict):
     ' All together - Time-Series & CDF for 1 ST and 1 BE flow '
     fig, axes = plt.subplots(3, 3)  # , sharex='col')
     # Latency Time-Series
-    sns.scatterplot(ax=axes[0, 1], data=stats_dict.get('df_tx1'), x='time_from_start(s)', y='latency')
-    sns.scatterplot(ax=axes[1, 1], data=stats_dict.get('df_tx2'), x='time_from_start(s)', y='latency')
+    sns.scatterplot(ax=axes[0, 1], data=stats_dict.get('df_rx1'), x='time_from_start(s)', y='latency')
+    sns.scatterplot(ax=axes[1, 1], data=stats_dict.get('df_rx2'), x='time_from_start(s)', y='latency')
     for i, (key, df) in enumerate(stats_dict.items()):
         sns.scatterplot(ax=axes[2, 1], data=df, x='time_from_start(s)', y='latency', legend=True)
                         # hue='Flows', style='Flows', size='Flows', palette='dark')
@@ -169,8 +169,34 @@ def plot_statistics(stats_dict):
     # Important : Plot of received timestamp for these flows shows clear demarcation
     # sns.scatterplot(data=df, x='iperf.id', y= 'frame.time_epoch')
 
-    # Adjust the layout
-    plt.suptitle("Packet Flow Statistics", y=1.02)
+    # Latency CDF
+    sns.ecdfplot(ax=axes[0, 2], data=stats_dict.get('df_rx1'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
+    sns.ecdfplot(ax=axes[1, 2], data=stats_dict.get('df_rx2'), x='latency', lw=7, stat='proportion', log_scale=(False, False))
+    for i, (key, df) in enumerate(stats_dict.items()):
+        sns.ecdfplot(ax=axes[2, 2], data=df, x='latency', lw=7, stat='proportion', log_scale=(False, False), label=key)
+    axes[0, 2].set_title('Latency CDF [ST]')
+    axes[1, 2].set_title('Latency CDF [BE]')
+    axes[2, 2].set_title('Latency CDF [ST, BE]')
+    axes[2, 2].legend(loc='best')
+    # sns.stripplot(x='Flows', y='Latency (ms)', data=Time_Data)
+
+    # Latency Time-Series boxplot
+    # Define outlier properties for boxplots
+    flierprops = dict(marker='o', markersize=1)
+    bin_size = 20
+    # Binning the data and create another column which represents each time bin
+    for file, df in stats_dict.items():
+        df['Time'] = pd.cut(df.index, bins=bin_size, labels=False)
+    sns.boxplot(ax=axes[0, 0], data=stats_dict.get('df_rx1'), x='Time', y='latency', showfliers=True, flierprops=flierprops, label='df_rx1')
+    sns.boxplot(ax=axes[1, 0], data=stats_dict.get('df_rx2'), x='Time', y='latency', showfliers=True, flierprops=flierprops, label='df_rx2')
+    for i, (key, df) in enumerate(stats_dict.items()):
+        sns.boxplot(ax=axes[2, 0], data=df, x='Time', y='latency', showfliers=False, flierprops=flierprops, label=key)
+    axes[0, 0].grid()
+    axes[1, 0].grid()
+    axes[2, 0].grid()
+    # sns.despine()
+
+    fig.suptitle('Latency vs Time - for Scheduled Traffic and Best Effort flows - [Scheduled Traffic (ST)]', y=1)
     plt.tight_layout()
 
 

@@ -15,65 +15,67 @@
 # -------------------------------------------------------
 
 # Systems used: ssh details
-ssh zenlab@10.114.64.114  # tx
-ssh -X zenlab@10.114.64.114  # rx
-ssh zenlab@10.114.64.194  # nfp
+#ssh zenlab@10.114.64.114  # tx
+#ssh -X zenlab@10.114.64.114  # rx
+#ssh zenlab@10.114.64.194  # nfp
 
 # Provide permissions to networking tools (one-time)
-sudo chmod +x /usr/bin/dumpcap
+#sudo chmod +x /usr/bin/dumpcap
 
 # --------
 # Setup
 # --------
 # tx
-cd ~/Documents/archive-pcap-txrx/vlan-pcap-files
+#cd ~/Documents/archive-pcap-txrx/vlan-pcap-files
 # rx
 # one-time
-sudo modprobe -rv ixgbe
-sudo modprobe -v ixgbe allow_unsupported_sfp=1
+#sudo modprobe -rv ixgbe
+#sudo modprobe -v ixgbe allow_unsupported_sfp=1
 # make tmp directory to store new experiment csv files
-mkdir /tmp/tmpexp
+#mkdir /tmp/tmpexp
 
 # -------------------
 # tx system
 # -------------------
 # capture
 sudo echo hello
-tshark -i enp4s0f0 -f "vlan and udp dst port 3002" -a duration:7 -s 118 -w /tmp/expt-utas-tx1.pcap &
-tshark -i enp4s0f0 -f "vlan and udp dst port 3003" -a duration:7 -s 118 -w /tmp/expt-utas-tx2.pcap &
+tshark -i enp4s0f1 -f "vlan and udp dst port 5001" -a duration:10 -s 128 -w /tmp/tmpexp/expt-tx1.pcap &
+tshark -i enp4s0f1 -f "vlan and udp dst port 5002" -a duration:10 -s 128 -w /tmp/tmpexp/expt-tx2.pcap &
 sleep 2
 # transmit
-sudo tcpreplay -i enp4s0f0 -M 400M --duration=10 Traffic_Flow_vlan\(2\)_packetsize\(100B\)_Priority\(0\)_NoPrio_dev.pcap &
-sudo tcpreplay -i enp4s0f0 -M 400M --duration=10 Traffic_Flow_vlan\(3\)_packetsize\(100B\)_Priority\(0\)_NoPrio_dev.pcap
+sudo tcpreplay -i enp4s0f1 -M 50m --duration=5 Traffic_Flow_vlan_10_packetsize_128B_priority_0__NoPrio_dev.pcap &
+sudo tcpreplay -i enp4s0f1 -M 50m --duration=5 Traffic_Flow_vlan_11_packetsize_128B_priority_0__NoPrio_dev.pcap &
+wait
 # pcap to csv and transfer
 args="-T fields -E header=y -E separator=, \
 -e ip.src -e ip.dst -e ip.id -e vlan.id -e vlan.priority \
 -e udp.srcport -e udp.dstport -e frame.time_epoch -e frame.len"
-tshark -r /tmp/expt-utas-tx1.pcap $args > /tmp/expt-utas-tx1.csv &
-tshark -r /tmp/expt-utas-tx2.pcap $args > /tmp/expt-utas-tx2.csv &
+tshark -r /tmp/expt-tx1.pcap $args > /tmp/expt-tx1.csv &
+tshark -r /tmp/expt-tx2.pcap $args > /tmp/expt-tx2.csv &
 wait
-scp /tmp/expt-utas-tx1.csv zenlab@10.114.64.114:/tmp/tmpexp/
-scp /tmp/expt-utas-tx2.csv zenlab@10.114.64.114:/tmp/tmpexp/
+scp /tmp/expt-tx1.csv zenlab@10.114.64.114:/tmp/tmpexp/
+scp /tmp/expt-tx2.csv zenlab@10.114.64.114:/tmp/tmpexp/
 
-#--------------------
+# -------------------
 # rx system
 # -------------------
 # capture
-tshark -i enp4s0f1 -f "vlan and udp dst port 3002" -a duration:7 -s 118 -w /tmp/expt-utas-rx1.pcap &
-tshark -i enp4s0f1 -f "vlan and udp dst port 3003" -a duration:7 -s 118 -w /tmp/expt-utas-rx2.pcap &
+tshark -i enp4s0f0 -f "vlan and udp dst port 5001" -a duration:10 -s 128 -w /tmp/tmpexp/expt-rx1.pcap &
+tshark -i enp4s0f0 -f "vlan and udp dst port 5002" -a duration:10 -s 128 -w /tmp/tmpexp/expt-rx2.pcap &
 wait
-sleep 1
+sleep 2
 # pcap to csv and store
 args="-T fields -E header=y -E separator=, \
--e ip.src -e ip.dst -e ip.id -e vlan.id -e vlan.priority \
--e udp.srcport -e udp.dstport -e frame.time_epoch -e frame.len"
-tshark -r /tmp/expt-utas-rx1.pcap $args > /tmp/tmpexp/expt-utas-rx1.csv &
-tshark -r /tmp/expt-utas-rx2.pcap $args > /tmp/tmpexp/expt-utas-rx2.csv &
+-e udp.dstport -e frame.time_epoch -e frame.len \
+-e iperf.tos -e iperf.id -e iperf.id2 -e iperf.sec -e iperf.usec"
+# -e iperf.mport -e ip.src -e ip.dst -e ip.id -e vlan.id -e vlan.priority -e udp.srcport \
+tshark -r /tmp/tmpexp/expt-rx1.pcap $args > /tmp/tmpexp/expt-rx1.csv &
+tshark -r /tmp/tmpexp/expt-rx2.pcap $args > /tmp/tmpexp/expt-rx2.csv &
 wait
 # verify capture
 ls -al /tmp/tmpexp
 # analysis
-../archive-analysis.py
+python ../archive-analysis.py
 
 #--------------------
 # nfp system
@@ -100,3 +102,4 @@ phc2sys -c CLOCK_REALTIME -d enp4s0f0 -w -m &
 
 echo 'Done !!'
 echo ' '
+
