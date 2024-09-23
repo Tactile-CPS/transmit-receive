@@ -59,13 +59,13 @@ HERE
 
 : '
 # Start iperf server & iperf client for each flow
-ip netns exec ns1 iperf -s -u -p 5010 > server1_stats.txt &
-ip netns exec ns1 iperf -s -u -p 5011 > server2_stats.txt &
+ip netns exec ns1 iperf -s -u -p 5010 -i 1 > server1_stats.txt &
+ip netns exec ns1 iperf -s -u -p 5011 -i 1 > server2_stats.txt &
 # ip netns exec ns1 iperf -s -u -B $INTERFACE0 -P 1 -e --histogram --jitter-histograms -i 1 > /tmp/tmpexp/erver1_stats.txt 2>&1 &
 
-ip netns exec ns0 iperf -c 192.168.1.2 -u -p 5010 -t 10 -i 1 -b 10m -e --trip-times --tos 0 > /tmp/tmpexp/client1_stats.txt &
-ip netns exec ns0 iperf -c 192.168.1.2 -u -p 5011 -t 10 -i 1 -b 10m -e --trip-times --tos 0 > /tmp/tmpexp/client2_stats.txt &
-#ip netns exec ns0 iperf -c 192.168.1.2 -u -B $INTERFACE1 -p 5010 -t 10 -i 1 -b 10m -P 1 -l 1000 -e --trip-times --tos 0 > /tmp/tmpexp/client1_stats.txt 2>&1 &
+ip netns exec ns0 iperf -c 192.168.10.20 -u -p 5010 -t 10 -i 1 -b 10m -e --trip-times --tos 0 > /tmp/tmpexp/client1_stats.txt &
+ip netns exec ns0 iperf -c 192.168.10.20 -u -p 5011 -t 10 -i 1 -b 10m -e --trip-times --tos 0 > /tmp/tmpexp/client2_stats.txt &
+#ip netns exec ns0 iperf -c 192.168.10.20 -u -B $INTERFACE1 -p 5010 -t 10 -i 1 -b 10m -P 1 -l 1000 -e --trip-times --tos 0 > /tmp/tmpexp/client1_stats.txt 2>&1 &
 # Wait for iperf to finish
 wait
 '
