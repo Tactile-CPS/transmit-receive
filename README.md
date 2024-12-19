@@ -2,7 +2,7 @@
 - Script to generate, transmit, receive, and analyse packet flow 
 
 ## Generate, transmit and receive scripts
-- `'txrx-same-host.sh'`
+- iperf tool on same host for tx&rx using `txrx-same-host.sh`
   - Transmits iperf flows
   - Options provided in script
     - VLAN tagging
@@ -13,7 +13,7 @@
   - Hence, currently we send 2 flows (ST & BE) on port 1 and receive both on port 2.
   - Uses namespaces to work on the same host
 
-- `'txrx-separate-hosts.sh'`
+- iperf tool to tx&rx on separate hpsts using `txrx-separate-hosts.sh`
   - Doesn't need namespaces to work on separate hosts
 
 - For capture of iperf packets with wireshark/tshark, full header should be present. Hence, for iperf, 76+46=122 bytes is the minimum datarate. Use 128 as minimum by giving iperf payload length as 128-46=82 bytes. 46 bytes include Ethernet, VLAN, IPv4, UDP headers. Also, iperf datarate (-b x) is equivalent to x/x+(fcs+preamble+epiogue=24bytes)
