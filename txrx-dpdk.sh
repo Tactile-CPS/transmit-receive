@@ -17,7 +17,7 @@ modprobe -r nfp
 modprobe nfp nfp_pf_netdev=1
 
 # Setup DPDK hugepages and PCI NIC devices
-cd /home/zenlab/Documents/dpdk
+cd /home/zenlab/Documents/joy/dpdk
 ./usertools/dpdk-hugepages.py -p 1G --setup 8G
 ./usertools/dpdk-devbind.py -s
 ./usertools/dpdk-devbind.py --bind=none     04:00.0 04:00.1
@@ -31,15 +31,11 @@ make clean buildlua
 ./usr/local/bin/pktgen -l 0,2 -n 4 --proc-type auto -a 04:00.0 -a 04:00.1 --log-level 7 -- -P -m "[2].0" -T -j -f test/hello-world.lua  # Won't work because of core-port mapping
 ./usr/local/bin/pktgen -l 0-2 -n 4 --proc-type auto -a 04:00.0 -a 04:00.1 --log-level 7 -- -P -m "1.0" -m "2.1" -T -v -f test/hello-world.lua
 ## Run
-cd /home/zenlab/Documents/Pktgen-DPDK
-export RTE_SDK=/home/zenlab/Documents/dpdk
+cd /home/zenlab/Documents/joy/Pktgen-DPDK
+export RTE_SDK=/home/zenlab/Documents/joy/dpdk
 export RTE_TARGET=build
 ./tools/run.py -s default-custom
 ./tools/run.py default-custom
-enable  0 range
-disable 0 range
-enable  1 range
-disable 1 range
 enable 0 latency
 enable 1 latency
 enable 0 vlan

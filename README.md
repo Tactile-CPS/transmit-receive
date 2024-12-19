@@ -16,6 +16,8 @@
 - `'txrx-separate-hosts.sh'`
   - Doesn't need namespaces to work on separate hosts
 
+- For capture of iperf packets with wireshark/tshark, full header should be present. Hence, for iperf, 76+46=122 bytes is the minimum datarate. Use 128 as minimum by giving iperf payload length as 128-46=82 bytes. 46 bytes include Ethernet, VLAN, IPv4, UDP headers. Also, iperf datarate (-b x) is equivalent to x/x+(fcs+preamble+epiogue=24bytes)
+
 ## Analysis scripts
 - Reads csv files and calculates latency, jitter, packet loss, out-of-order
 - `'txrx-analysis-rxonly.py'`
@@ -26,3 +28,4 @@
 
 # Notes
 - For utas, datarate = 6.6M, time = 2s using archive-txrx scripts
+

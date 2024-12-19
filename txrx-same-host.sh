@@ -19,6 +19,9 @@
 # Any Tx flow should go to another interface, same interface doesn't support both tx and rx.
 # -------------------------------------------------------
 
+# Setup for a Intel NIC when the interfaces don't show up
+modprobe -rv ixgbe
+modprobe -v ixgbe allow_unsupported_sfp=1
 
 # Define interface names
 INTERFACE0="enp4s0f0"
@@ -168,6 +171,6 @@ eval tshark -r /tmp/tmpexp/expt-rx1.pcap $args > /tmp/tmpexp/expt-rx1.csv &
 eval tshark -r /tmp/tmpexp/expt-tx2.pcap $args > /tmp/tmpexp/expt-tx2.csv &
 eval tshark -r /tmp/tmpexp/expt-rx2.pcap $args > /tmp/tmpexp/expt-rx2.csv &
 wait
-python txrx-analysis.py
+echo 'python txrx-analysis.py'
 # or ./txrx-analysis-rxonly.py
 `
