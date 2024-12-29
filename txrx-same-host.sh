@@ -26,7 +26,7 @@ modprobe -v ixgbe allow_unsupported_sfp=1
 # Define interface names
 INTERFACE0="enp4s0f0"
 INTERFACE1="enp4s0f1"
-: '
+
 # Create network namespaces
 ip netns add ns0
 ip netns add ns1
@@ -34,7 +34,6 @@ ip netns add ns1
 # Assign interfaces to namespaces
 ip link set $INTERFACE0 netns ns0
 ip link set $INTERFACE1 netns ns1
-'
 
 COMMENT << HERE
 # ---------------------------------
@@ -73,7 +72,6 @@ ip netns exec ns0 iperf -c 192.168.10.20 -u -p 5011 -t 10 -i 1 -b 10m -e --trip-
 wait
 '
 
-: '
 # ----------------------------------------
 # Section 2: If VLAN interfaces are needed
 # ----------------------------------------
@@ -99,7 +97,6 @@ ip netns exec ns0 ip neigh add 192.168.10.20 lladdr 90:e2:ba:f4:e0:e5 dev $INTER
 ip netns exec ns0 ip neigh add 192.168.11.20 lladdr 90:e2:ba:f4:e0:e5 dev $INTERFACE0.11
 ip netns exec ns1 ip neigh add 192.168.10.10 lladdr 90:e2:ba:f4:e0:e4 dev $INTERFACE1.10
 ip netns exec ns1 ip neigh add 192.168.11.10 lladdr 90:e2:ba:f4:e0:e4 dev $INTERFACE1.11
-'
 
 # ------------------------------------
 # Section 3 : Run - both tx from same port
@@ -120,7 +117,6 @@ ip netns exec ns1 iperf -c 192.168.10.10 -B 192.168.10.20 -u -p 5010 -t 5 -l 125
 ip netns exec ns1 iperf -c 192.168.11.10 -B 192.168.11.20 -u -p 5011 -t 5 -l 125 -z -i 1 -b 100m -e --trip-times --tos 0 --no-udp-fin > /tmp/tmpexp/client2_stats.txt &
 wait
 
-: '
 # ------------------------------------
 # Section 3b : Run - cross-connection
 # ------------------------------------
@@ -139,8 +135,7 @@ sleep 1
 ip netns exec ns1 iperf -c 192.168.10.10 -B 192.168.10.20 -u -p 5010 -t 10 -P 1 -l 1000 -z -i 1 -b 2g -e --trip-times --tos 0 --no-udp-fin > /tmp/tmpexp/client1_stats.txt &
 ip netns exec ns0 iperf -c 192.168.11.20 -B 192.168.11.10 -u -p 5011 -t 10 -P 4 -l 1000 -z -i 1 -b 10g -e --trip-times --tos 0 --no-udp-fin > /tmp/tmpexp/client2_stats.txt &
 wait
-'
-: '
+
 # ------------------------------------
 # Cleanup
 # ------------------------------------
@@ -154,7 +149,6 @@ ip netns exec ns1 ip link set $INTERFACE1 netns 1
 # Delete namespaces
 ip netns delete ns0
 ip netns delete ns1
-'
 
 # ------------------------------------
 # Section 4a: If capture was needed for fine-grained analysis
